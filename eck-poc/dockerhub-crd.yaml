@@ -1,0 +1,9 @@
+apiVersion: v1
+kind: Secret
+metadata:
+  name: dockerhub-cred
+  namespace: kafka
+type: kubernetes.io/dockerconfigjson
+data:
+  .dockerconfigjson: ewoJImF1dGhzIjogewoJCSJodHRwczovL2luZGV4LmRvY2tlci5pby92MS8iOiB7CgkJCSJhdXRoIjogImJXOXRiMkZrWTJOb09rUmtNVEl6TkRVMk56ZzUiCgkJfQoJfQp9
+

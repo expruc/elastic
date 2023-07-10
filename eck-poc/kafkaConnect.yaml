@@ -1,0 +1,41 @@
+apiVersion: kafka.strimzi.io/v1beta2
+kind: KafkaConnect
+metadata:
+  name: my-connect-cluster-elastic-build
+  annotations:
+    strimzi.io/use-connector-resources: "true"
+  namespace: kafka
+spec:
+  externalConfiguration:
+    volumes:
+      - secret:
+          items:
+            - key: certificate.jks
+              path: certificate.jks
+          secretName: elastic-certs-jks
+        name: certificates
+      - secret:
+          items:
+            - key: transport.jks
+              path: transport.jks
+          secretName: elastic-certs-transport-jks
+        name: transport
+  image: docker.io/momoadcch/kafka-connect-elastic-sink:latest
+  bootstrapServers: 'my-cluster-kafka-bootstrap:9093'
+  config:
+    config.storage.replication.factor: -1
+    config.storage.topic: connect-cluster-configs
+    group.id: connect-cluster
+    offset.storage.replication.factor: -1
+    offset.storage.topic: connect-cluster-offsets
+    status.storage.replication.factor: -1
+    status.storage.topic: connect-cluster-status
+    key.converter.schemas.enable: false
+    value.converter.schemas.enable: false
+  replicas: 1
+  tls:
+    trustedCertificates:
+      - certificate: ca.crt
+        secretName: my-cluster-cluster-ca-cert
+      - certificate: certificate.pem
+        secretName: elastic-certs

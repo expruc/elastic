@@ -1,0 +1,21 @@
+config:
+  filebeat:
+    autodiscover:
+      providers:
+        - type: kubernetes
+          node: ${NODE_NAME}
+          hints:
+            enabled: true
+            default_config:
+              type: container
+              paths:
+                - /var/log/containers/*${data.kubernetes.container.id}.log
+    processors:
+      - add_cloud_metadata: {}
+      - add_host_metadata: {}
+    output.elasticsearch:
+      hosts: ["${ECK_ES_HOSTS}"]
+      username: "elastic"
+      password: "W0MmLg1t2z55WIKZ9U8o392X"
+      ssl.certificate_authorities: ["${ECK_ES_SSL_CERTIFICATE_AUTHORITY}"]
+      index: "%{[kubernetes][namespace]}"

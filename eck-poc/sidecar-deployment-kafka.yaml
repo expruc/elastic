@@ -1,0 +1,58 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: my-deployment
+  namespace: elastic
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: my-app
+  template:
+    metadata:
+      labels:
+        app: my-app
+    spec:
+      containers:
+        - name: random-logger
+          image: expruc/random-logger
+          resources: {}
+          volumeMounts:
+            - name: logs
+              mountPath: /tmp
+        - name: filebeat-sidecar
+          image: docker.elastic.co/beats/filebeat-ubi8:8.8.0
+          volumeMounts:
+            - name: filebeat-config
+              mountPath: /usr/share/filebeat/filebeat.yml
+              subPath: filebeat.yml
+            - name: logs
+              mountPath: /tmp/
+
+      volumes:
+        - name: logs
+        - name: filebeat-config
+          configMap:
+            name: filebeat-sidecar-configmap
+            items:
+              - key: filebeat.yml
+                path: filebeat.yml
+---
+# Source: vector/templates/configmap.yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: filebeat-sidecar-configmap
+  namespace: elastic
+data:
+  filebeat.yml: |
+    filebeat.inputs:
+    - type: log
+      paths: ["/tmp/*"]
+    name: blackops-sidecar
+    setup.template.name: "grafana-try"
+    setup.template.pattern: "grafana-try*"
+    output.kafka:
+      hosts: ["http://my-cluster-kafka-bootstrap.kafka.svc.cluster.local:9091"]
+      topic: 'example-topic'
+    
