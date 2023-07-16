@@ -6,6 +6,7 @@ metadata:
   namespace: elastic
 spec:
   config:
+   # logging.level: debug
     filebeat:
       autodiscover:
         providers:
@@ -17,13 +18,25 @@ spec:
               enabled: true
             node: "${NODE_NAME}"
             type: kubernetes
-    output.kafka:
-      hosts:
-        - my-cluster-kafka-brokers.kafka.svc.cluster.local:9092
-      topic: example-topic
     processors:
       - add_cloud_metadata: {}
       - add_host_metadata: {}
+      - script:
+          lang: javascript
+          id: extract_tenant_name
+          source: >
+            function process(event) {
+              var namespace = event.Get("kubernetes.namespace");
+              var tenantName = namespace.split('-')[0];
+              event.Put('tenant_name', tenantName);
+              return event;
+            }
+    output.kafka:
+      hosts:
+        - my-cluster-kafka-brokers.kafka.svc.cluster.local:9092
+      topic: "%{[tenant_name]}"
+      # topics: 
+      #   - topic: "blackops"    
   daemonSet:
     podTemplate:
       spec:

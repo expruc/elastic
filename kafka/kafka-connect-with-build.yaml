@@ -1,0 +1,40 @@
+apiVersion: kafka.strimzi.io/v1beta2
+kind: KafkaConnect
+metadata:
+  name: my-connect-cluster-elastic-build
+  annotations:
+    strimzi.io/use-connector-resources: "true"
+  namespace: kafka
+spec:
+  image: docker.io/momoadcch/kafka-connect-elastic-sink:latest
+  bootstrapServers: 'my-cluster-kafka-bootstrap:9093'
+  config:
+    config.storage.replication.factor: -1
+    config.storage.topic: connect-cluster-configs
+    group.id: connect-cluster
+    offset.storage.replication.factor: -1
+    offset.storage.topic: connect-cluster-offsets
+    status.storage.replication.factor: -1
+    status.storage.topic: connect-cluster-status
+  build:
+    output:
+      type: docker
+      image: docker.io/momoadcch/kafka-connect-elastic-sink:eyaaaaaaaaa-aa-aa
+      pushSecret: dockerhub-cred
+    plugins:
+      - name: elasticsearch-sink-confluent
+        artifacts:
+          - type: maven
+            repository: https://packages.confluent.io/maven
+            # https://packages.confluent.io/maven/io/confluent/kafka-connect-elasticsearch/14.0.3/kafka-connect-elasticsearch-14.0.3.jar
+            # https://mvnrepository.com/io/confluent/kafka-connect-elasticsearch/14.0.3/kafka-connect-elasticsearch-14.0.3.jar
+            group: io.confluent
+            artifact: kafka-connect-elasticsearch
+            version: 14.0.3    
+  replicas: 1
+  tls:
+    trustedCertificates:
+      - certificate: ca.crt
+        secretName: my-cluster-cluster-ca-cert
+      - certificate: certificate.pem
+        secretName: elastic-certs
