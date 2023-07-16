@@ -1,0 +1,63 @@
+apiVersion: beat.k8s.elastic.co/v1beta1
+kind: Beat
+metadata:
+  annotations: {}
+  name: filebeat
+  namespace: elastic
+spec:
+  config:
+    filebeat:
+      autodiscover:
+        providers:
+          - hints:
+              default_config:
+                paths:
+                  - /var/log/containers/*${data.kubernetes.container.id}.log
+                type: container
+              enabled: true
+            node: "${NODE_NAME}"
+            type: kubernetes
+    output.kafka:
+      hosts:
+        - my-cluster-kafka-brokers.kafka.svc.cluster.local:9092
+      topic: example-topic
+    processors:
+      - add_cloud_metadata: {}
+      - add_host_metadata: {}
+  daemonSet:
+    podTemplate:
+      spec:
+        automountServiceAccountToken: true
+        containers:
+          - env:
+              - name: NODE_NAME
+                valueFrom:
+                  fieldRef:
+                    fieldPath: spec.nodeName
+            name: filebeat
+            securityContext:
+              privileged: true
+              runAsUser: 0
+            volumeMounts:
+              - mountPath: /var/log/containers
+                name: varlogcontainers
+              - mountPath: /var/log/pods
+                name: varlogpods
+              - mountPath: /var/lib/docker/containers
+                name: varlibdockercontainers
+        dnsPolicy: ClusterFirstWithHostNet
+        hostNetwork: true
+        serviceAccountName: filebeat
+        terminationGracePeriodSeconds: 30
+        volumes:
+          - hostPath:
+              path: /var/log/containers
+            name: varlogcontainers
+          - hostPath:
+              path: /var/log/pods
+            name: varlogpods
+          - hostPath:
+              path: /var/lib/docker/containers
+            name: varlibdockercontainers
+  type: filebeat
+  version: 8.8.0

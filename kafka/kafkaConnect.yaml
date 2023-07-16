@@ -14,12 +14,6 @@ spec:
               path: certificate.jks
           secretName: elastic-certs-jks
         name: certificates
-      - secret:
-          items:
-            - key: transport.jks
-              path: transport.jks
-          secretName: elastic-certs-transport-jks
-        name: transport
   image: docker.io/momoadcch/kafka-connect-elastic-sink:latest
   bootstrapServers: 'my-cluster-kafka-bootstrap:9093'
   config:
