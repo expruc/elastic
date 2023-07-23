@@ -17,4 +17,12 @@ spec:
     elastic.https.ssl.truststore.location: /opt/kafka/external-configuration/certificates/certificate.jks
     connection.url: 'https://monitoring-es-http.elastic.svc:9200'
     schema.ignore: true
-  tasksMax: 1
+    read.timeout.ms: 180000
+    # batch.size: 10000
+    # max.buffered.records: 200000
+    transforms: routeTS
+    transforms.routeTS.type: org.apache.kafka.connect.transforms.TimestampRouter
+    transforms.routeTS.topic.format: "${topic}-${timestamp}"
+    transforms.routeTS.timestamp.format: "yyyy-MM-dd"
+    flush.synchronously: "true"
+  tasksMax: 5

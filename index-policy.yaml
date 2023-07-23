@@ -1,0 +1,17 @@
+
+
+apiVersion: stackconfigpolicy.k8s.elastic.co/v1alpha1
+kind: StackConfigPolicy
+metadata:
+  name: test-stack-config-policy
+  namespace: elastic
+spec:
+  elasticsearch:
+    indexLifecyclePolicies:
+      delete-later-1-day:
+        phases:
+          delete:
+            actions:
+              delete: {}
+            min_age: 1d
+

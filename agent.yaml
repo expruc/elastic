@@ -1,100 +1,111 @@
 apiVersion: beat.k8s.elastic.co/v1beta1
 kind: Beat
 metadata:
+  annotations: {}
   name: filebeat
   namespace: elastic
 spec:
-  type: filebeat
-  version: 8.8.0
   config:
+    # logging.level: debug
     filebeat:
       autodiscover:
         providers:
-        - type: kubernetes
-          node: ${NODE_NAME}
-          hints:
-            enabled: true
-            default_config:
-              type: container
-              paths:
-              - /var/log/containers/*${data.kubernetes.container.id}.log
+          - hints:
+              default_config:
+                paths:
+                  - /var/log/containers/*${data.kubernetes.container.id}.log
+                type: container
+              enabled: true
+            node: "${NODE_NAME}"
+            type: kubernetes
     processors:
       - add_cloud_metadata: {}
       - add_host_metadata: {}
-      - drop_fields:
-          when: 
-            has_fields: ["host.mac", "cloud.machine.type"]
-          fields: ["host.mac", "cloud.machine.type"]
-          ignore_missing: false
-    output.logstash:
-      hosts: ["logstash-ls-beats:5044"]
-     # hosts: ["https://logstash-ls-beats.elastic.svc:5044"]
+      # - script:
+      #     lang: javascript
+      #     id: extract_tenant_name
+      #     source: >
+      #       function process(event) {
+      #         var namespace = event.Get("kubernetes.namespace");
+      #         var tenantName = namespace.split('-')[0];
+      #         event.Put('tenant_name', tenantName);
+      #         return event;
+      #       }
+    output.kafka:
+      hosts:
+        - my-cluster-kafka-brokers.kafka.svc.cluster.local:9092
+      topic: example-topic
+     # topic: "%{[tenant_name]}"
+      # topics: 
+      #   - topic: "blackops"    
   daemonSet:
     podTemplate:
       spec:
-        serviceAccountName: filebeat
         automountServiceAccountToken: true
-        terminationGracePeriodSeconds: 30
-        dnsPolicy: ClusterFirstWithHostNet
-        hostNetwork: true # Allows to provide richer host metadata
         containers:
-        - name: filebeat
-          securityContext:
-            runAsUser: 0
-            privileged: true
-          volumeMounts:
-          - name: varlogcontainers
-            mountPath: /var/log/containers
-          - name: varlogpods
-            mountPath: /var/log/pods
-          - name: varlibdockercontainers
-            mountPath: /var/lib/docker/containers
-          env:
-            - name: NODE_NAME
-              valueFrom:
-                fieldRef:
-                  fieldPath: spec.nodeName
+          - env:
+              - name: NODE_NAME
+                valueFrom:
+                  fieldRef:
+                    fieldPath: spec.nodeName
+            name: filebeat
+            securityContext:
+              privileged: true
+              runAsUser: 0
+            volumeMounts:
+              - mountPath: /var/log/containers
+                name: varlogcontainers
+              - mountPath: /var/log/pods
+                name: varlogpods
+              - mountPath: /var/lib/docker/containers
+                name: varlibdockercontainers
+        dnsPolicy: ClusterFirstWithHostNet
+        hostNetwork: true
+        serviceAccountName: filebeat
+        terminationGracePeriodSeconds: 30
         volumes:
-        - name: varlogcontainers
-          hostPath:
-            path: /var/log/containers
-        - name: varlogpods
-          hostPath:
-            path: /var/log/pods
-        - name: varlibdockercontainers
-          hostPath:
-            path: /var/lib/docker/containers
----
-apiVersion: rbac.authorization.k8s.io/v1
-kind: ClusterRole
-metadata:
-  name: filebeat
-rules:
-- apiGroups: [""] # "" indicates the core API group
-  resources:
-  - namespaces
-  - pods
-  - nodes
-  verbs:
-  - get
-  - watch
-  - list
----
-apiVersion: v1
-kind: ServiceAccount
-metadata:
-  name: filebeat
-  namespace: elastic
----
-apiVersion: rbac.authorization.k8s.io/v1
-kind: ClusterRoleBinding
-metadata:
-  name: filebeat
-subjects:
-- kind: ServiceAccount
-  name: filebeat
-  namespace: elastic
-roleRef:
-  kind: ClusterRole
-  name: filebeat
-  apiGroup: rbac.authorization.k8s.io
+          - hostPath:
+              path: /var/log/containers
+            name: varlogcontainers
+          - hostPath:
+              path: /var/log/pods
+            name: varlogpods
+          - hostPath:
+              path: /var/lib/docker/containers
+            name: varlibdockercontainers
+  type: filebeat
+  version: 8.8.0
+# ---
+# apiVersion: rbac.authorization.k8s.io/v1
+# kind: ClusterRole
+# metadata:
+#   name: filebeat
+# rules:
+# - apiGroups: [""] # "" indicates the core API group
+#   resources:
+#   - namespaces
+#   - pods
+#   - nodes
+#   verbs:
+#   - get
+#   - watch
+#   - list
+# ---
+# apiVersion: v1
+# kind: ServiceAccount
+# metadata:
+#   name: filebeat
+#   namespace: elastic
+# ---
+# apiVersion: rbac.authorization.k8s.io/v1
+# kind: ClusterRoleBinding
+# metadata:
+#   name: filebeat
+# subjects:
+# - kind: ServiceAccount
+#   name: filebeat
+#   namespace: elastic
+# roleRef:
+#   kind: ClusterRole
+#   name: filebeat
+#   apiGroup: rbac.authorization.k8s.io
