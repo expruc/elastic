@@ -1,5 +1,3 @@
-
-
 apiVersion: stackconfigpolicy.k8s.elastic.co/v1alpha1
 kind: StackConfigPolicy
 metadata:
@@ -7,6 +5,19 @@ metadata:
   namespace: elastic
 spec:
   elasticsearch:
+    indexTemplate:
+      composableIndexTemplates:
+        blackops:
+          composed_of:
+          - logs-settings
+          - logs-mappings
+          index_patterns:
+          - blackops*
+          template:
+            index:
+              lifecycle:
+                name: delete-after-one-day
+                rollover_alias: elastic
     indexLifecyclePolicies:
       delete-later-1-day:
         phases:

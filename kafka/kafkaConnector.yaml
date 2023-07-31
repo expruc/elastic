@@ -25,4 +25,6 @@ spec:
     transforms.routeTS.topic.format: "${topic}-${timestamp}"
     transforms.routeTS.timestamp.format: "yyyy-MM-dd"
     flush.synchronously: "true"
+    # data.stream.dataset: .ds_logs_example
+    # data.stream.type: logs
   tasksMax: 5
