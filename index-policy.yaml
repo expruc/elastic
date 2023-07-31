@@ -5,6 +5,7 @@ metadata:
   namespace: elastic
 spec:
   elasticsearch:
+    #Create index template to connect to the index lifecycle
     indexTemplate:
       composableIndexTemplates:
         blackops:
@@ -14,11 +15,13 @@ spec:
           index_patterns:
           - blackops*
           template:
+          #transformed to json and added in index settings (UI)
             index:
               lifecycle:
                 name: delete-after-one-day
                 rollover_alias: elastic
     indexLifecyclePolicies:
+    #Might need to configure Hot phase (in UI automatically configured)
       delete-later-1-day:
         phases:
           delete:
